@@ -1,0 +1,61 @@
+{# Name: Aryan Zope
+PRN: 26070122053 #}
+{% extends "base.html" %}
+{% block title %}Student{% endblock %}
+{% block body %}
+<h1>My learning space</h1>
+<div class="card">
+  <h2>My privacy controls</h2>
+  <p class="mute">Your pseudonymous ID is <code>{{ pid }}</code>. Your name and roll number are never stored with your activity. The AI tutor runs on the college server, not a third party.</p>
+  <form method="post" action="{{ url_for('consent') }}">
+    <label><input type="checkbox" name="track" {{ 'checked' if s.track }}> Record my practice activity (needed for my self-reliance score)</label><br>
+    <label><input type="checkbox" name="share" {{ 'checked' if s.share }}> Let faculty see support alerts about me</label><br><br>
+    <button>Save my choices</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>My self-reliance score</h2>
+  {% if score is not none %}
+    <div class="score">{{ score }}<small class="mute"> / 100</small></div>
+    <div class="bar"><i style="width:{{ score }}%"></i></div>
+    <p class="mute">Higher means you solved more questions with fewer hints. Revealed answers score zero.</p>
+  {% else %}
+    <p class="mute">Solve a question below to see your score.{% if not s.track %} Tracking is off, so nothing is being recorded.{% endif %}</p>
+  {% endif %}
+</div>
+
+<h2>Practice</h2>
+{% for c in cards %}
+<div class="card">
+  <b>Question {{ c.id }}.</b> {{ c.q }}
+  {% if c.st.done %}
+    <p><span class="tag">{{ 'Answer: ' ~ c.ans if c.st.revealed else 'Solved by you' }}</span></p>
+  {% else %}
+    <form method="post" action="{{ url_for('practice', qid=c.id, action='attempt') }}" class="row" style="margin:.6rem 0">
+      <input type="text" name="answer" placeholder="Your attempt" aria-label="Your answer to question {{ c.id }}" required>
+      <button>Submit attempt</button>
+    </form>
+    <div class="row">
+      <form method="post" action="{{ url_for('practice', qid=c.id, action='hint') }}"><button class="alt">Get a hint ({{ c.st.hints }} of {{ c.hints|length }} used)</button></form>
+      <form method="post" action="{{ url_for('practice', qid=c.id, action='reveal') }}"><button class="alt">Reveal answer</button></form>
+    </div>
+  {% endif %}
+  {% for h in c.hints[:c.st.hints] %}<p class="mute">Hint {{ loop.index }}: {{ h }}</p>{% endfor %}
+  {% if c.st.tries and not c.st.done %}<p class="mute">Attempts so far: {{ c.st.tries }}</p>{% endif %}
+</div>
+{% endfor %}
+
+<div class="card">
+  <h2>Exactly what is collected about me</h2>
+  {% if s.events %}
+  <div class="table-wrap"><table>
+    <tr><th>Question</th><th>Hints used</th><th>Answer revealed</th><th>Days ago</th><th>Score</th></tr>
+    {% for e in s.events %}<tr><td>{{ e.qid }}</td><td>{{ e.hints }}</td><td>{{ 'Yes' if e.revealed else 'No' }}</td><td>{{ e.days_ago }}</td><td>{{ e.score }}</td></tr>{% endfor %}
+  </table></div>
+  <form method="post" action="{{ url_for('delete_data') }}" style="margin-top:.8rem"><button class="alt">Delete all my activity</button></form>
+  {% else %}
+  <p class="mute">Nothing is recorded about you right now.</p>
+  {% endif %}
+</div>
+{% endblock %}
